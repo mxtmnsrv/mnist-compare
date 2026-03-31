@@ -1,86 +1,54 @@
-# MNIST Memorization vs. Generalization: Normal vs. Cursed
+# MNIST Generalization vs. Memorization
 
-This project explores the limits of neural network learning by comparing performance on the standard MNIST dataset versus a "Cursed" version with fully randomized labels. We investigate whether larger models can "memorize" a dataset when no logical relationship exists between images and categories.
+This project investigates neural network behavior when training on standard data versus data with randomized labels ("Cursed MNIST"). We compare standard and large-scale Multi-Layer Perceptrons (MLP) and Convolutional Neural Networks (CNN) to observe the transition from feature learning to brute-force memorization.
 
-## 🚀 Overview
+## Overview
 
-The core of this project is a comparative study between:
-1.  **Normal MNIST**: Standard handwritten digits (0-9) with their correct ground-truth labels.
-2.  **Cursed MNIST**: The same digit images, but with **randomly shuffled labels**. This breaks the spatial-semantic relationship, forcing the model to either fail or resort to brute-force memorization.
+We evaluate two conditions:
+1.  **Normal MNIST**: Standard digits with correct ground-truth labels.
+2.  **Cursed MNIST**: Standard digits with fully randomized labels. This breaks the relationship between image features and categories, forcing models to either fail entirely or overfit by memorizing individual training samples.
 
----
+## Experiments and Results
 
-## 📊 Key Experiments & Results
+### Normal Dataset
+Both Simple MLP (~96%) and Simple CNN (~99%) achieved high validation accuracy on the original dataset, confirming successful generalization of spatial features.
 
-Detailed analysis of our findings based on various architectures:
+### Cursed Dataset (Random Labels)
+On the "Cursed" dataset, all models failed to achieve predictive power.
+- **Validation Accuracy**: Consistently remained near **10%** across all architectures, which reflects random guessing for ten classes.
+- **Training and Overfitting**: Experiments with larger models (`nn_large` and `cnn_large`) showed that increasing model capacity allows the network to "memorize" the training set labels even without a logical pattern. However, because no underlying logic exists, this memorization does not translate to validation accuracy.
 
-### 1. Generalization on Normal Data
-Using standard MLP and CNN architectures, we achieved high performance on the original MNIST dataset:
--   **Simple CNN**: ~99% Validation Accuracy.
--   **Simple MLP**: ~96% Validation Accuracy.
-These results confirm that the models successfully learn spatial features (edges, loops, strokes) that generalize to unseen digits.
+We conclude that logical consistency between inputs and outputs is the most critical factor for successful learning. Without it, advanced architectures merely become high-capacity look-up tables that fail to generalize.
 
-### 2. The "Cursed" Dataset Challenge
-When training on the Cursed dataset (random labels), the results were starkly different:
--   **Validation Accuracy**: Consistently stayed near **10%** (equivalent to random guessing across 10 classes).
--   **Training Accuracy**: In larger models (`nn_large`), we observed the training accuracy climbing slowly, indicating the model was attempting to **memorize specific pixel patterns** for specific random labels, rather than learning general features.
+## Project Structure and Usage
 
-### 3. Memorization with Larger Models
-To test the "Memorization" hypothesis, we implemented `nn_large` and `cnn_large`:
--   **Large MLP (`nn_large`)**: 784 -> 2048 -> 1024 -> 512 -> 256 -> 10.
--   **Observations**: By increasing model capacity and removing dropout, the model can effectively "brute-force" the training set labels, even if they are random. However, because there is no underlying logic, the **Validation Accuracy remains at 10%**, proving that memorization does not lead to intelligence.
+- **src/**: Contains model definitions, dataset wrappers, and training loops.
+- **prepare_data.py**: Downloads MNIST and generates randomized "cursed" labels.
+- **train.py**: CLI for training models (`nn`, `cnn`, `nn_large`, `cnn_large`) on either dataset.
+- **evaluate.py**: CLI for testing checkpoints.
+- **visualize.py**: Utility to view images and labels.
 
----
+### Example Commands
 
-## 🛠️ Project Structure
+1. **Prepare Data**:
+   ```bash
+   python prepare_data.py
+   ```
 
--   `src/`
-    -   `models.py`: Definitions for `SimpleMLP`, `LargeMLP`, `SimpleCNN`, and `LargeCNN`.
-    -   `dataset.py`: custom `CursedMNIST` class and dataloader utilities.
-    -   `trainer.py`: Shared training and evaluation logic.
--   `prepare_data.py`: Downloads MNIST and generates the randomized `cursed` labels.
--   `train.py`: Primary CLI for running experiments.
--   `evaluate.py`: Test saved checkpoints on any dataset version.
--   `visualize.py`: Utility to view images and their assigned (normal or cursed) labels.
+2. **Run Memorization Test**:
+   Train a large model on randomized labels to observe overfitting:
+   ```bash
+   python train.py --model nn_large --dataset cursed --epochs 20 --dropout 0.0
+   ```
 
----
+3. **Check Generalization**:
+   Evaluate a model trained on normal data against the cursed set:
+   ```bash
+   python evaluate.py --model cnn --dataset cursed --checkpoint ./checkpoints/cnn_normal.pt
+   ```
 
-## 💻 Usage Guide
-
-### 1. Setup & Data Preparation
-First, install dependencies and generate the "Cursed" labels:
-```bash
-pip install -r requirements.txt
-python prepare_data.py
-```
-
-### 2. Run the Memorization Experiment
-To see if a large model can memorize random labels, run:
-```bash
-python train.py --model nn_large --dataset cursed --epochs 20 --dropout 0.0 --save-name cursed_memo
-```
-
-### 3. Visualize the "Cursed" Data
-To see the chaos for yourself:
-```bash
-python visualize.py --dataset cursed --num 16
-```
-
-### 4. Evaluate a Model
-Check how a model trained on normal data performs on cursed data (spoiler: it fails):
-```bash
-python evaluate.py --model cnn --dataset cursed --checkpoint ./checkpoints/cnn_normal.pt
-```
-
----
-
-## 📝 Conclusion
-Our experiments conclude that while advanced architectures provide a significant advantage in accuracy, the **integrity of data labels** is the most critical factor. The failure to generalize on shuffled data proves that AI requires a consistent and logical relationship between inputs and outputs to achieve true predictive power beyond simple memorization.
-
----
-
-## 🛠️ Model Architectures
--   **nn (SimpleMLP)**: 784 -> 512 -> 256 -> 10.
--   **nn_large (LargeMLP)**: 784 -> 2048 -> 1024 -> 512 -> 256 -> 10.
--   **cnn (SimpleCNN)**: 2 Conv layers (32, 64) -> 2 MaxPool layers -> 1 FC layer (512).
--   **cnn_large (LargeCNN)**: 3 Conv layers (64, 128, 256) -> 3 MaxPool layers -> 2 FC layers (1024, 512).
+## Model Architectures
+- **Simple MLP**: 784 -> 512 -> 256 -> 10
+- **Large MLP**: 784 -> 2048 -> 1024 -> 512 -> 256 -> 10
+- **Simple CNN**: 2 Conv (32, 64) -> MaxPool -> 1 FC (512)
+- **Large CNN**: 3 Conv (64, 128, 256) -> MaxPool -> 2 FC (1024, 512)
